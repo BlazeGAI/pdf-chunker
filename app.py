@@ -22,7 +22,7 @@ def split_pdf(pdf_file, max_size_mb):
 
         temp_size = os.path.getsize(temp_path) / (1024 * 1024)  # size in MB
 
-        if current_size + temp_size > max_size_mb and current_writer.getNumPages() > 0:
+        if current_size + temp_size > max_size_mb and len(current_writer.pages) > 0:
             output_path = f"part_{part_num}.pdf"
             with open(output_path, "wb") as output_file:
                 current_writer.write(output_file)
@@ -35,7 +35,7 @@ def split_pdf(pdf_file, max_size_mb):
         current_size += temp_size
         os.remove(temp_path)
 
-    if current_writer.getNumPages() > 0:
+    if len(current_writer.pages) > 0:
         output_path = f"part_{part_num}.pdf"
         with open(output_path, "wb") as output_file:
             current_writer.write(output_file)
