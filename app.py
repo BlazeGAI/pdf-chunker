@@ -1,50 +1,29 @@
 import streamlit as st
-from PyPDF2 import PdfReader, PdfWriter
+from pdfminer.high_level import extract_text
 import os
 from zipfile import ZipFile
 
-# Function to split PDF
-def split_pdf(pdf_file, max_size_mb):
-    input_pdf = PdfReader(pdf_file)
-    total_pages = len(input_pdf.pages)
+# Function to split text into files
+def split_text_to_files(text, max_size_mb):
+    max_size_bytes = max_size_mb * 1024 * 1024
     output_files = []
     part_num = 1
+    start = 0
 
-    current_writer = PdfWriter()
-    current_size = 0
-
-    for page_num in range(total_pages):
-        current_writer.add_page(input_pdf.pages[page_num])
-        temp_path = f"temp_part_{part_num}.pdf"
-
-        with open(temp_path, "wb") as temp_file:
-            current_writer.write(temp_file)
-
-        temp_size = os.path.getsize(temp_path) / (1024 * 1024)  # size in MB
-
-        if temp_size > max_size_mb and page_num > 0:
-            current_writer = PdfWriter()  # Start a new writer without adding the current page
-            current_writer.add_page(input_pdf.pages[page_num])  # Add the current page to the new writer
-
-            # Write the previous writer's content to a new part file
-            output_path = f"part_{part_num}.pdf"
-            with open(output_path, "wb") as output_file:
-                current_writer.write(output_file)
-            output_files.append(output_path)
-
-            part_num += 1
-            current_writer = PdfWriter()
-            current_size = temp_size  # Reset the size for the new part
-        else:
-            current_size = temp_size
-
-        os.remove(temp_path)  # Remove the temporary file
-
-    if len(current_writer.pages) > 0:
-        output_path = f"part_{part_num}.pdf"
-        with open(output_path, "wb") as output_file:
-            current_writer.write(output_file)
+    while start < len(text):
+        end = start + max_size_bytes
+        part_text = text[start:end]
+        while len(part_text.encode('utf-8')) > max_size_bytes:
+            end -= 1
+            part_text = text[start:end]
+        
+        output_path = f"part_{part_num}.txt"
+        with open(output_path, "w", encoding="utf-8") as output_file:
+            output_file.write(part_text)
         output_files.append(output_path)
+        
+        start = end
+        part_num += 1
 
     return output_files
 
@@ -56,16 +35,19 @@ def create_zip(output_files, zip_name="output.zip"):
             os.remove(file)
     return zip_name
 
-st.title("PDF Splitter")
-st.write("Upload a PDF file to split it into pieces no larger than 9MB.")
+st.title("PDF to Text Splitter")
+st.write("Upload a PDF file to convert it to text and split it into pieces no larger than 10MB.")
 
 pdf_file = st.file_uploader("Choose a PDF file", type="pdf")
 
 if pdf_file is not None:
-    max_size_mb = 9
-    output_files = split_pdf(pdf_file, max_size_mb)
+    # Extract text from PDF
+    text = extract_text(pdf_file)
     
-    zip_name = "pdf_parts.zip"
+    max_size_mb = 10
+    output_files = split_text_to_files(text, max_size_mb)
+    
+    zip_name = "text_parts.zip"
     zip_path = create_zip(output_files, zip_name)
     
     with open(zip_path, "rb") as zip_file:
