@@ -1,64 +1,75 @@
 import streamlit as st
-import fitz  # PyMuPDF
-import nltk
-import time
+from pdfminer.high_level import extract_text
+import os
+from zipfile import ZipFile
+import re
 
-nltk.download('punkt')
+# Function to clean text
+def clean_text(text):
+    # Remove non-printable characters
+    text = re.sub(r'[^\x20-\x7E\n]', '', text)
+    # Replace multiple spaces with a single space
+    text = re.sub(r'\s+', ' ', text)
+    # Replace multiple newlines with a single newline
+    text = re.sub(r'\n+', '\n', text)
+    return text.strip()
 
-def extract_text_from_pdf(pdf_file):
-    pdf_document = fitz.open(stream=pdf_file.read(), filetype="pdf")
-    full_text = ""
-    for page_num in range(len(pdf_document)):
-        page = pdf_document.load_page(page_num)
-        full_text += page.get_text("text")
-    return full_text
+# Function to split text into files
+def split_text_to_files(text, max_size_mb):
+    max_size_bytes = max_size_mb * 1024 * 1024
+    output_files = []
+    part_num = 1
+    start = 0
 
-def chunk_text(text, max_length=1000):
-    sentences = nltk.sent_tokenize(text)
-    chunks = []
-    current_chunk = []
-
-    for sentence in sentences:
-        if len(' '.join(current_chunk)) + len(sentence) <= max_length:
-            current_chunk.append(sentence)
-        else:
-            chunks.append(' '.join(current_chunk))
-            current_chunk = [sentence]
-    
-    if current_chunk:
-        chunks.append(' '.join(current_chunk))
-    
-    return chunks
-
-def process_chunk(chunk):
-    # Simulate processing time
-    start_time = time.time()
-    # Simulate processing by sleeping (replace with actual processing logic)
-    time.sleep(1)
-    processing_time = time.time() - start_time
-    return f"Processed chunk in {processing_time:.2f} seconds."
-
-def main():
-    st.title("PDF Text Chunker and Processor")
-
-    uploaded_file = st.file_uploader("Choose a PDF file", type="pdf")
-    
-    if uploaded_file is not None:
-        with st.spinner('Extracting text from PDF...'):
-            text = extract_text_from_pdf(uploaded_file)
-        st.success('Text extracted from PDF.')
+    while start < len(text):
+        end = start + max_size_bytes
+        part_text = text[start:end]
+        while len(part_text.encode('utf-8')) > max_size_bytes:
+            end -= 1
+            part_text = text[start:end]
         
-        max_length = st.slider("Select maximum chunk length (number of characters)", min_value=500, max_value=5000, value=1000, step=500)
+        output_path = f"part_{part_num}.txt"
+        with open(output_path, "w", encoding="utf-8") as output_file:
+            output_file.write(part_text)
+        output_files.append(output_path)
         
-        chunks = chunk_text(text, max_length=max_length)
-        
-        st.write(f"Total chunks created: {len(chunks)}")
+        start = end
+        part_num += 1
 
-        process_results = []
-        for i, chunk in enumerate(chunks):
-            result = process_chunk(chunk)
-            process_results.append(result)
-            st.write(f"Chunk {i+1}: {result}")
+    return output_files
 
-if __name__ == "__main__":
-    main()
+# Function to create a zip file from a list of files
+def create_zip(output_files, zip_name="output.zip"):
+    with ZipFile(zip_name, 'w') as zipf:
+        for file in output_files:
+            zipf.write(file)
+            os.remove(file)
+    return zip_name
+
+st.title("PDF to Clean Text Splitter")
+st.write("Upload a PDF file to convert it to clean text and split it into pieces no larger than 10MB.")
+
+pdf_file = st.file_uploader("Choose a PDF file", type="pdf")
+
+if pdf_file is not None:
+    # Extract text from PDF
+    text = extract_text(pdf_file)
+    
+    # Clean the extracted text
+    clean_text_data = clean_text(text)
+    
+    max_size_mb = 10
+    output_files = split_text_to_files(clean_text_data, max_size_mb)
+    
+    zip_name = "text_parts.zip"
+    zip_path = create_zip(output_files, zip_name)
+    
+    with open(zip_path, "rb") as zip_file:
+        st.download_button(
+            label="Download ZIP file",
+            data=zip_file,
+            file_name=zip_name,
+            mime="application/zip"
+        )
+    
+    os.remove(zip_path)  # Remove the zip file after download
