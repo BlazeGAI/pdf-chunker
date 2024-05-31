@@ -38,7 +38,7 @@ def split_text_into_chapters(text):
         chapter_title = match.group(1).replace(" ", "_")
         output_path = f"{chapter_title}.txt"
         with open(output_path, "w", encoding="utf-8") as output_file:
-            output_file.write(chapter_text)
+            output_file.write(chapter_text.strip())  # Strip to remove leading/trailing spaces/newlines
         output_files.append(output_path)
 
     return output_files
