@@ -7,30 +7,34 @@ def split_pdf(pdf_file, max_size_mb):
     input_pdf = PdfReader(pdf_file)
     total_pages = len(input_pdf.pages)
     output_files = []
+    part_num = 1
+
     temp_pdf_writer = PdfWriter()
     temp_size = 0
-    part_num = 1
 
     for page_num in range(total_pages):
         temp_pdf_writer.add_page(input_pdf.pages[page_num])
         temp_path = f"temp_part_{part_num}.pdf"
-        
+
         with open(temp_path, "wb") as temp_file:
             temp_pdf_writer.write(temp_file)
-        
+
         temp_size = os.path.getsize(temp_path) / (1024 * 1024)  # size in MB
 
         if temp_size > max_size_mb:
-            temp_pdf_writer.remove_page(-1)  # remove the last page that caused the oversize
+            temp_pdf_writer.remove_page(-1)  # Remove the last page
             output_path = f"part_{part_num}.pdf"
             with open(output_path, "wb") as output_file:
                 temp_pdf_writer.write(output_file)
             output_files.append(output_path)
-            temp_pdf_writer = PdfWriter()
-            temp_pdf_writer.add_page(input_pdf.pages[page_num])  # re-add the last page to new part
-            part_num += 1
-        os.remove(temp_path)
+            os.remove(temp_path)
 
+            # Start a new writer for the next part
+            part_num += 1
+            temp_pdf_writer = PdfWriter()
+            temp_pdf_writer.add_page(input_pdf.pages[page_num])
+
+    # Write the remaining pages to the last part
     if len(temp_pdf_writer.pages) > 0:
         output_path = f"part_{part_num}.pdf"
         with open(output_path, "wb") as output_file:
