@@ -17,7 +17,7 @@ def clean_text(text):
 # Function to split text into chapters
 def split_text_into_chapters(text):
     # Use a regular expression to find chapter headings
-    chapter_pattern = re.compile(r'(Chapter \d+)', re.IGNORECASE)
+    chapter_pattern = re.compile(r'(?i)(Chapter \d+)', re.IGNORECASE)
     matches = list(chapter_pattern.finditer(text))
     output_files = []
 
@@ -57,12 +57,21 @@ pdf_file = st.file_uploader("Choose a PDF file", type="pdf")
 if pdf_file is not None:
     # Extract text from PDF
     text = extract_text(pdf_file)
+
+    # Print text for debugging
+    st.write(f"Extracted Text: {text[:2000]}...")  # Display first 2000 characters for debugging
     
     # Clean the extracted text
     clean_text_data = clean_text(text)
     
+    # Print cleaned text for debugging
+    st.write(f"Cleaned Text: {clean_text_data[:2000]}...")  # Display first 2000 characters for debugging
+    
     # Split text into chapters
     output_files = split_text_into_chapters(clean_text_data)
+    
+    # Print output files for debugging
+    st.write(f"Output Files: {output_files}")
     
     # Create a zip file
     zip_name = "chapters.zip"
