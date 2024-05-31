@@ -17,9 +17,8 @@ def clean_text(text):
 # Function to split text into chapters
 def split_text_into_chapters(text):
     # Use a regular expression to find chapter headings
-    # This example assumes chapters are numbered like "Chapter 1", "Chapter 2", etc.
-    chapter_pattern = re.compile(r'(Chapter \d+)', re.IGNORECASE)
-    matches = list(chapter_pattern.finditer(text))
+    chapter_pattern = re.compile(r'(\bChapter\s+\d+\b.*?)(?=\bChapter\s+\d+\b|$)', re.IGNORECASE | re.DOTALL)
+    matches = chapter_pattern.findall(text)
     output_files = []
 
     if not matches:
@@ -31,15 +30,13 @@ def split_text_into_chapters(text):
         return output_files
 
     for i, match in enumerate(matches):
-        start = match.start()
-        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-        chapter_text = text[start:end]
-
-        chapter_title = match.group(1).replace(" ", "_")
-        output_path = f"{chapter_title}.txt"
-        with open(output_path, "w", encoding="utf-8") as output_file:
-            output_file.write(chapter_text.strip())  # Strip to remove leading/trailing spaces/newlines
-        output_files.append(output_path)
+        chapter_title_match = re.match(r'(\bChapter\s+\d+\b)', match, re.IGNORECASE)
+        if chapter_title_match:
+            chapter_title = chapter_title_match.group(1).replace(" ", "_")
+            output_path = f"{chapter_title}.txt"
+            with open(output_path, "w", encoding="utf-8") as output_file:
+                output_file.write(match.strip())
+            output_files.append(output_path)
 
     return output_files
 
