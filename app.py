@@ -48,7 +48,6 @@ def create_zip(output_files, zip_name="output.zip"):
     with ZipFile(zip_name, 'w') as zipf:
         for file in output_files:
             zipf.write(file)
-            os.remove(file)
     return zip_name
 
 st.title("PDF to Clean Text Splitter by Chapter")
@@ -78,4 +77,7 @@ if pdf_file is not None:
             mime="application/zip"
         )
     
-    os.remove(zip_path)  # Remove the zip file after download
+    # Remove the text files and zip file after download
+    for file in output_files:
+        os.remove(file)
+    os.remove(zip_path)
