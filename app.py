@@ -1,18 +1,18 @@
 import streamlit as st
-from PyPDF2 import PdfFileReader, PdfFileWriter
+from PyPDF2 import PdfReader, PdfWriter
 import os
 
 # Function to split PDF
 def split_pdf(pdf_file, max_size_mb):
-    input_pdf = PdfFileReader(pdf_file)
-    total_pages = input_pdf.getNumPages()
+    input_pdf = PdfReader(pdf_file)
+    total_pages = len(input_pdf.pages)
     output_files = []
-    temp_pdf_writer = PdfFileWriter()
+    temp_pdf_writer = PdfWriter()
     temp_size = 0
     part_num = 1
     
     for page_num in range(total_pages):
-        temp_pdf_writer.addPage(input_pdf.getPage(page_num))
+        temp_pdf_writer.add_page(input_pdf.pages[page_num])
         temp_path = f"temp_part_{part_num}.pdf"
         
         with open(temp_path, "wb") as temp_file:
@@ -21,17 +21,17 @@ def split_pdf(pdf_file, max_size_mb):
         temp_size = os.path.getsize(temp_path) / (1024 * 1024)  # size in MB
         
         if temp_size > max_size_mb:
-            temp_pdf_writer.removePage(-1)
+            temp_pdf_writer.pages.pop()
             output_path = f"part_{part_num}.pdf"
             with open(output_path, "wb") as output_file:
                 temp_pdf_writer.write(output_file)
             output_files.append(output_path)
-            temp_pdf_writer = PdfFileWriter()
-            temp_pdf_writer.addPage(input_pdf.getPage(page_num))
+            temp_pdf_writer = PdfWriter()
+            temp_pdf_writer.add_page(input_pdf.pages[page_num])
             part_num += 1
         os.remove(temp_path)
     
-    if temp_pdf_writer.getNumPages() > 0:
+    if len(temp_pdf_writer.pages) > 0:
         output_path = f"part_{part_num}.pdf"
         with open(output_path, "wb") as output_file:
             temp_pdf_writer.write(output_file)
