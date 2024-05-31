@@ -13,27 +13,37 @@ def split_pdf(pdf_file, max_size_mb):
     current_size = 0
 
     for page_num in range(total_pages):
-        temp_writer = PdfWriter()
-        temp_writer.add_page(input_pdf.pages[page_num])
-        temp_path = f"temp_page_{page_num}.pdf"
+        current_writer.add_page(input_pdf.pages[page_num])
+        temp_path = f"temp_part_{part_num}.pdf"
 
         with open(temp_path, "wb") as temp_file:
-            temp_writer.write(temp_file)
+            current_writer.write(temp_file)
 
         temp_size = os.path.getsize(temp_path) / (1024 * 1024)  # size in MB
-
-        if current_size + temp_size > max_size_mb and len(current_writer.pages) > 0:
+        os.remove(temp_path)
+        
+        if temp_size > max_size_mb:
+            # Remove the last page added to the writer
+            current_writer.pages.pop()
+            
+            # Save the current part without the last page
             output_path = f"part_{part_num}.pdf"
             with open(output_path, "wb") as output_file:
                 current_writer.write(output_file)
             output_files.append(output_path)
+
+            # Start a new part
             part_num += 1
             current_writer = PdfWriter()
-            current_size = 0
+            current_writer.add_page(input_pdf.pages[page_num])
 
-        current_writer.add_page(input_pdf.pages[page_num])
-        current_size += temp_size
-        os.remove(temp_path)
+            # Recalculate the size of the new part
+            with open(temp_path, "wb") as temp_file:
+                current_writer.write(temp_file)
+            current_size = os.path.getsize(temp_path) / (1024 * 1024)
+            os.remove(temp_path)
+        else:
+            current_size = temp_size
 
     if len(current_writer.pages) > 0:
         output_path = f"part_{part_num}.pdf"
