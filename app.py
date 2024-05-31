@@ -79,5 +79,7 @@ if pdf_file is not None:
     
     # Remove the text files and zip file after download
     for file in output_files:
-        os.remove(file)
-    os.remove(zip_path)
+        if os.path.exists(file):
+            os.remove(file)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
